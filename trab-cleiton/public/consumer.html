@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RabbitMQ Consumer</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f9;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 {
+      color: #333;
+    }
+    #receivedDogs {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 80%;
+    }
+    .card {
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      padding: 10px;
+      margin: 10px;
+      text-align: center;
+      background-color: #fff;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      width: 200px;
+      height: 350px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .card img {
+      border-radius: 10px;
+      width: 100%;
+      height: 150px;
+      object-fit: cover;
+    }
+    .card p {
+      margin: 10px 0 0;
+      font-size: 14px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>Received Dogs</h1>
+  <div id="receivedDogs"></div>
+  <script>
+    async function fetchMessages() {
+      const response = await fetch('/messages');
+      const messages = await response.json();
+      const receivedDogs = document.getElementById('receivedDogs');
+      receivedDogs.innerHTML = '';
+      messages.forEach(message => {
+        const card = document.createElement('div');
+        card.className = 'card';
+
+        const img = document.createElement('img');
+        img.src = message.imageUrl;
+        img.alt = message.breed;
+
+        const breed = document.createElement('p');
+        breed.textContent = `You received a ${message.breed}!`;
+
+        const details = document.createElement('p');
+        details.textContent = `Details: ${message.details.temperament || 'N/A'}`;
+
+        card.appendChild(img);
+        card.appendChild(breed);
+        card.appendChild(details);
+        receivedDogs.appendChild(card);
+      });
+    }
+
+    setInterval(fetchMessages, 3000);
+  </script>
+</body>
+</html>

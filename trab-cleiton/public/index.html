@@ -4,13 +4,199 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>RabbitMQ Producer</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f9;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 {
+      color: #333;
+    }
+    .filter-bar {
+      margin: 20px 0;
+      display: flex;
+      justify-content: space-between;
+      width: 80%;
+    }
+    .filter-bar input, .filter-bar select {
+      padding: 10px;
+      font-size: 16px;
+      width: 45%;
+    }
+    #dogCards {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 80%;
+    }
+    .card {
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      padding: 10px;
+      margin: 10px;
+      text-align: center;
+      background-color: #fff;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      width: 200px;
+      height: 350px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .card img {
+      border-radius: 10px;
+      width: 100%;
+      height: 150px;
+      object-fit: cover;
+    }
+    .card p {
+      margin: 10px 0 0;
+      font-size: 14px;
+      font-weight: bold;
+    }
+    .card button {
+      margin-top: 10px;
+      padding: 10px;
+      font-size: 16px;
+      color: #fff;
+      background-color: #007bff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .card button:hover {
+      background-color: #0056b3;
+    }
+    #messagesTitle {
+      display: none;
+    }
+    #messages {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 80%;
+    }
+  </style>
 </head>
 <body>
-  <h1>Send a Message</h1>
-  <form action="/send" method="POST">
-    <label for="message">Message:</label>
-    <input type="text" id="message" name="message" required>
-    <button type="submit">Send</button>
-  </form>
+  <h1>Send a Dog Image</h1>
+  <div class="filter-bar">
+    <input type="text" id="search" placeholder="Search by breed name">
+    <select id="temperament">
+      <option value="All">All Temperaments</option>
+      <option value="Friendly">Friendly</option>
+      <option value="Energetic">Energetic</option>
+      <option value="Playful">Playful</option>
+      <option value="Calm">Calm</option>
+      <option value="Loyal">Loyal</option>
+    </select>
+  </div>
+  <div id="dogCards"></div>
+  <h2 id="messagesTitle">Received Messages</h2>
+  <div id="messages"></div>
+  <script>
+    let allBreeds = [];
+
+    async function fetchBreeds() {
+      const response = await fetch('/dogs');
+      const breeds = await response.json();
+      allBreeds = breeds;
+      displayBreeds(breeds);
+    }
+
+    function displayBreeds(breeds) {
+      const dogCards = document.getElementById('dogCards');
+      dogCards.innerHTML = '';
+      breeds.forEach(breed => {
+        const card = document.createElement('div');
+        card.className = 'card';
+
+        const img = document.createElement('img');
+        img.src = breed.image ? breed.image.url : 'https://via.placeholder.com/200';
+        img.alt = breed.name;
+
+        const breedName = document.createElement('p');
+        breedName.textContent = breed.name;
+
+        const details = document.createElement('p');
+        details.textContent = `Temperament: ${breed.temperament || 'N/A'}`;
+
+        const button = document.createElement('button');
+        button.textContent = 'Send';
+        button.addEventListener('click', () => sendDog(breed));
+
+        card.appendChild(img);
+        card.appendChild(breedName);
+        card.appendChild(details);
+        card.appendChild(button);
+        dogCards.appendChild(card);
+      });
+    }
+
+    async function sendDog(breed) {
+      await fetch('/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ breedId: breed.id, breedName: breed.name, breedDetails: breed })
+      });
+      fetchMessages();
+    }
+
+    function filterBreeds() {
+      const searchQuery = document.getElementById('search').value.toLowerCase();
+      const selectedTemperament = document.getElementById('temperament').value;
+      const filteredBreeds = allBreeds.filter(breed => {
+        const matchesSearch = breed.name.toLowerCase().includes(searchQuery);
+        const matchesTemperament = selectedTemperament === 'All' || (breed.temperament && breed.temperament.includes(selectedTemperament));
+        return matchesSearch && matchesTemperament;
+      });
+      displayBreeds(filteredBreeds);
+    }
+
+    async function fetchMessages() {
+      const response = await fetch('/messages');
+      const messages = await response.json();
+      const messagesList = document.getElementById('messages');
+      messagesList.innerHTML = '';
+      const messagesTitle = document.getElementById('messagesTitle');
+      if (messages.length > 0) {
+        messagesTitle.style.display = 'block';
+      } else {
+        messagesTitle.style.display = 'none';
+      }
+      messages.forEach(message => {
+        const listItem = document.createElement('div');
+        listItem.className = 'card';
+
+        const img = document.createElement('img');
+        img.src = message.imageUrl;
+        img.alt = message.breed;
+
+        const breed = document.createElement('p');
+        breed.textContent = `You received a ${message.breed}!`;
+
+        const details = document.createElement('p');
+        details.textContent = `Details: ${message.details.temperament || 'N/A'}`;
+
+        listItem.appendChild(img);
+        listItem.appendChild(breed);
+        listItem.appendChild(details);
+        messagesList.appendChild(listItem);
+      });
+    }
+
+    document.getElementById('search').addEventListener('input', filterBreeds);
+    document.getElementById('temperament').addEventListener('change', filterBreeds);
+
+    fetchBreeds();
+    setInterval(fetchMessages, 3000);
+  </script>
 </body>
 </html>
